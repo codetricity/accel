@@ -5,6 +5,9 @@ try:
 except ImportError:
     android = None
 
+
+
+
 pygame.init()
 
 if android:
@@ -17,6 +20,7 @@ SCREENSIZE=(480,320)
 SCREENCENTER=(SCREENSIZE[0]/2, SCREENSIZE[1]/2)
 SCREEN = pygame.display.set_mode((480, 320))
 RED=(255, 0, 0)
+GREEN=(0, 255, 0)
 BLACK=(0,0,0)
 speed = 5
 direction = "stop"
@@ -64,6 +68,28 @@ player_rect.center = SCREEN.get_rect().center
 
 FPS = 30
 clock = pygame.time.Clock()
+def create_move_controller():
+    # create move controller for desktop environment
+    move_control = pygame.Surface((120, 120))
+    pygame.draw.circle(move_control, GREEN, (60, 20), 20, 3)
+    control_up = pygame.Rect(40, SCREENSIZE[1]-120, 40, 40)
+    pygame.draw.circle(move_control, GREEN, (60, 100), 20, 3)
+    control_down = pygame.Rect(40, SCREENSIZE[1]-40, 40, 40)
+    pygame.draw.circle(move_control, GREEN, (20, 60), 20, 3)
+    control_left = pygame.Rect(0, SCREENSIZE[1]-80, 40, 40)
+    pygame.draw.circle(move_control, GREEN, (100, 60), 20, 3)
+    control_right = pygame.Rect(80, SCREENSIZE[1]-80, 40, 40)
+    control_stop = pygame.Rect(40, SCREENSIZE[1]-80, 40, 40)
+    stop_button = pygame.Rect(40, 40, 40, 40)
+    pygame.draw.rect(move_control, RED, stop_button, 3)
+    move_control.set_alpha(80)
+    control_buttons={"left": control_left, "right": control_right, 
+                  "up": control_up, "down": control_down, 
+                  "stop": control_stop}
+    return move_control, control_buttons
+
+move_control, control_buttons = create_move_controller()
+
 
 while True:
     if android:
@@ -79,24 +105,30 @@ while True:
 
 
     if android:
-        if accel_reading[1] > 1:
-            direction = "right"
-        if accel_reading[1] < -1:
-            direction = "left"
-        if accel_reading[0] > 1:
-            direction = "down"
-        if accel_reading[0] < -1:
-            direction ="up"
-    else:
+        if accel_reading[1] > 1 or accel_reading[1] < -1 or accel_reading[0] > 6 or accel_reading[0] < 4:
+            if accel_reading[1] > .8:
+                direction = "right"
+            if accel_reading[1] < -.8:
+                direction = "left"
+            if accel_reading[0] > 7:
+                direction = "down"
+            if accel_reading[0] < 4.5:
+                direction ="up"
+        else:
+            direction = "stop"
+    if not android: # for testing on desktop
         mouse_pos = pygame.mouse.get_pos()
-        if mouse_pos[0] > SCREENCENTER[0] + 100:
+
+        if control_buttons["right"].collidepoint(mouse_pos): 
             direction = "right"
-        if mouse_pos[0] < SCREENCENTER[0] - 100:
+        if control_buttons["left"].collidepoint(mouse_pos):
             direction = "left"
-        if mouse_pos[1] > SCREENCENTER[1] + 100:
+        if control_buttons["down"].collidepoint( mouse_pos):
             direction = "down"
-        if mouse_pos[1] < SCREENCENTER[1] -100:
+        if control_buttons["up"].collidepoint(mouse_pos):
             direction = "up"
+        if control_buttons["stop"].collidepoint(mouse_pos):
+            direction = "stop"
 
     if direction =="right" and player_rect.right < 480:
         player_rect.centerx += speed
@@ -132,6 +164,8 @@ while True:
 
     SCREEN.fill(BLACK)
     SCREEN.blit(player, player_rect)
+    if not android: 
+        SCREEN.blit(move_control, (0, SCREENSIZE[1] - 120)) #show controller
 
     clock.tick(FPS)
     pygame.display.update()
