@@ -1,12 +1,87 @@
 import pygame, sys 
+import math
 
 try:
     import android
 except ImportError:
     android = None
 
+def create_move_controller():
+    # create move controller for desktop environment
+    move_control = pygame.Surface((120, 120))
+    pygame.draw.circle(move_control, GREEN, (60, 20), 20, 3)
+    control_up = pygame.Rect(40, SCREENSIZE[1]-120, 40, 40)
+    pygame.draw.circle(move_control, GREEN, (60, 100), 20, 3)
+    control_down = pygame.Rect(40, SCREENSIZE[1]-40, 40, 40)
+    pygame.draw.circle(move_control, GREEN, (20, 60), 20, 3)
+    control_left = pygame.Rect(0, SCREENSIZE[1]-80, 40, 40)
+    pygame.draw.circle(move_control, GREEN, (100, 60), 20, 3)
+    control_right = pygame.Rect(80, SCREENSIZE[1]-80, 40, 40)
+    control_stop = pygame.Rect(40, SCREENSIZE[1]-80, 40, 40)
+    stop_button = pygame.Rect(40, 40, 40, 40)
+    pygame.draw.rect(move_control, RED, stop_button, 3)
+    move_control.set_alpha(80)
+    control_buttons={"left": control_left, "right": control_right, 
+                  "up": control_up, "down": control_down, 
+                  "stop": control_stop}
+    return move_control, control_buttons
 
+class ShootController():
+    def __init__(self):
+        self.YELLOW = (131, 137, 24)
+        self.GRAY = (123, 104, 104)
+        self.image = self.draw()
+        self.rect = self.image.get_rect()
 
+    def draw(self):
+        shoot_control = pygame.Surface((120, 120))
+        shoot_control.fill((0,0,0))
+        pygame.draw.circle(shoot_control, self.YELLOW, (60, 60), 3)
+        pygame.draw.circle(shoot_control, self.GRAY, (60, 60), 50, 1)
+#        pygame.draw.circle(shoot_control, self.YELLOW, (60, 60), 40, 1)
+        
+        return shoot_control
+        
+    def angle(self, pos):
+        x = pos[0]
+        y = pos[1]
+        self.centerx = 480- 60
+        self.centery = 320 - 60
+        adjacent = float(x - self.centerx)
+        opposite = float(y - self.centery)
+        if opposite < 0.0:
+            opposite = opposite * -1.0
+            if adjacent > 0.0:
+                radians = math.atan(opposite/adjacent)
+            elif adjacent == 0:
+                radians = .5 * math.pi
+            elif adjacent < 0.0:
+                adjacent = adjacent * -1
+                radians = (.5 * math.pi) +  (.5 * math.pi - math.atan(opposite/adjacent))
+        elif opposite == 0:
+            if adjacent > 0:
+                radians = 0
+            if adjacent < 0:
+                radians = math.pi
+        elif opposite > 0.0:
+            if adjacent > 0.0:
+                radians = math.pi + (.5 * math.pi) +  (.5 * math.pi - math.atan(opposite/adjacent))
+            elif adjacent == 0:
+                radians = 1.5 * math.pi
+            elif adjacent < 0.0:
+                adjacent = adjacent * -1
+                radians = math.pi + math.atan(opposite/adjacent)
+        return radians
+
+    def point(self, pos):
+        angle = self.angle(pos)
+        hypotenuse = 50
+        adjacent = math.cos(angle) * hypotenuse
+        x = int(60 + adjacent)
+        opposite = math.sin(angle) * hypotenuse
+        y =  int(60-opposite)
+        print(x, y)
+        pygame.draw.circle(self.image, self.YELLOW, (x, y), 10, 2)
 
 pygame.init()
 
@@ -68,28 +143,10 @@ player_rect.center = SCREEN.get_rect().center
 
 FPS = 30
 clock = pygame.time.Clock()
-def create_move_controller():
-    # create move controller for desktop environment
-    move_control = pygame.Surface((120, 120))
-    pygame.draw.circle(move_control, GREEN, (60, 20), 20, 3)
-    control_up = pygame.Rect(40, SCREENSIZE[1]-120, 40, 40)
-    pygame.draw.circle(move_control, GREEN, (60, 100), 20, 3)
-    control_down = pygame.Rect(40, SCREENSIZE[1]-40, 40, 40)
-    pygame.draw.circle(move_control, GREEN, (20, 60), 20, 3)
-    control_left = pygame.Rect(0, SCREENSIZE[1]-80, 40, 40)
-    pygame.draw.circle(move_control, GREEN, (100, 60), 20, 3)
-    control_right = pygame.Rect(80, SCREENSIZE[1]-80, 40, 40)
-    control_stop = pygame.Rect(40, SCREENSIZE[1]-80, 40, 40)
-    stop_button = pygame.Rect(40, 40, 40, 40)
-    pygame.draw.rect(move_control, RED, stop_button, 3)
-    move_control.set_alpha(80)
-    control_buttons={"left": control_left, "right": control_right, 
-                  "up": control_up, "down": control_down, 
-                  "stop": control_stop}
-    return move_control, control_buttons
 
 move_control, control_buttons = create_move_controller()
-
+shoot = ShootController()
+shoot.rect.bottomright = SCREENSIZE
 
 while True:
     if android:
@@ -161,8 +218,14 @@ while True:
         else:
             seq_u = 0
 
+    if shoot.rect.collidepoint(mouse_pos):
+
+        shoot.image = shoot.draw()
+        shoot.point(mouse_pos)
+
 
     SCREEN.fill(BLACK)
+    SCREEN.blit(shoot.image, shoot.rect)
     SCREEN.blit(player, player_rect)
     if not android: 
         SCREEN.blit(move_control, (0, SCREENSIZE[1] - 120)) #show controller
