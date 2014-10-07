@@ -6,6 +6,24 @@ try:
 except ImportError:
     android = None
 
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, mouse_pos, player_pos):
+        RED = (255, 0, 0)
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((3,3))
+        self.image.fill(RED)
+        self.rect = self.image.get_rect()
+        self.player_pos = player_pos
+        self.angle = shoot.angle(mouse_pos)
+        self.distance = 32
+
+    def update(self):
+        self.rect.centerx = int(self.player_pos[0] + math.cos(self.angle) *self.distance)
+        self.rect.centery = int(self.player_pos[1] - math.sin(self.angle) * self.distance)
+        self.distance = self.distance +10
+
+
+
 def create_move_controller():
     # create move controller for desktop environment
     move_control = pygame.Surface((120, 120))
@@ -80,7 +98,6 @@ class ShootController():
         x = int(60 + adjacent)
         opposite = math.sin(angle) * hypotenuse
         y =  int(60-opposite)
-        print(x, y)
         pygame.draw.circle(self.image, self.YELLOW, (x, y), 10, 2)
 
 pygame.init()
@@ -148,6 +165,12 @@ move_control, control_buttons = create_move_controller()
 shoot = ShootController()
 shoot.rect.bottomright = SCREENSIZE
 
+newBullet = False
+bulletDelay = 10
+bulletFirst = True
+bullet_group = pygame.sprite.Group()
+mouse_pos = pygame.mouse.get_pos()
+
 while True:
     if android:
         if android.check_pause():
@@ -159,6 +182,10 @@ while True:
                                          and event.key == pygame.K_ESCAPE):
             pygame.quit()
             sys.exit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_pos = pygame.mouse.get_pos()
+        elif event.type == pygame.MOUSEBUTTONUP:
+            mouse_pos = (0,0)
 
 
     if android:
@@ -174,7 +201,7 @@ while True:
         else:
             direction = "stop"
     if not android: # for testing on desktop
-        mouse_pos = pygame.mouse.get_pos()
+
 
         if control_buttons["right"].collidepoint(mouse_pos): 
             direction = "right"
@@ -222,9 +249,24 @@ while True:
 
         shoot.image = shoot.draw()
         shoot.point(mouse_pos)
+        newBullet = True
+    
 
 
     SCREEN.fill(BLACK)
+
+    if newBullet:
+        bullet = Bullet(mouse_pos, player_rect.center)
+        bullet_group.add(bullet)
+        newBullet = False
+    
+    bullet_group.update()
+    for bullet in bullet_group:
+        if (bullet.rect.centerx > 480 or bullet.rect.centerx < 0 or bullet.rect.centery < 0 or
+            bullet.rect.centery) > 320:
+            bullet_group.remove(bullet)
+    bullet_group.draw(SCREEN)
+
     SCREEN.blit(shoot.image, shoot.rect)
     SCREEN.blit(player, player_rect)
     if not android: 
