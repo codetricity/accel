@@ -1,5 +1,7 @@
 import pygame, sys 
 import math
+import flock
+
 
 try:
     import android
@@ -38,10 +40,11 @@ def create_move_controller():
     control_stop = pygame.Rect(40, SCREENSIZE[1]-80, 40, 40)
     stop_button = pygame.Rect(40, 40, 40, 40)
     pygame.draw.rect(move_control, RED, stop_button, 3)
-    move_control.set_alpha(80)
     control_buttons={"left": control_left, "right": control_right, 
                   "up": control_up, "down": control_down, 
                   "stop": control_stop}
+    move_control.set_colorkey((0,0,0))
+    move_control.set_alpha(80)
     return move_control, control_buttons
 
 class ShootController():
@@ -57,7 +60,7 @@ class ShootController():
         pygame.draw.circle(shoot_control, self.YELLOW, (60, 60), 3)
         pygame.draw.circle(shoot_control, self.GRAY, (60, 60), 50, 1)
 #        pygame.draw.circle(shoot_control, self.YELLOW, (60, 60), 40, 1)
-        
+        shoot_control.set_colorkey((0,0,0))
         return shoot_control
         
     def angle(self, pos):
@@ -133,20 +136,32 @@ seq_u = 1
 
 for x in range (0, 256, 64):
     rect = pygame.Rect(x, 0, 64, 64)
-    img_d = pygame.Surface((64, 64)).convert_alpha()
+    img_d = pygame.Surface((64, 64))
     img_d.blit(sprite_sheet, (0, 0), rect)
+    img_d.unlock()
+    img_d.set_colorkey((0,0,0))
+    img_d.convert_alpha()
     player_d.append(img_d)
-    img_l = pygame.Surface((64, 64)).convert_alpha()
+    img_l = pygame.Surface((64, 64))
     rect = pygame.Rect(x, 64, 64, 64)
     img_l.blit(sprite_sheet, (0, 0) , rect)
+    img_l.unlock()
+    img_l.set_colorkey((0,0,0))
+    img_l.convert_alpha()
     player_l.append(img_l)
-    img_r = pygame.Surface((64, 64)).convert_alpha()
+    img_r = pygame.Surface((64, 64))
     rect = pygame.Rect(x, 128, 64, 64)
     img_r.blit(sprite_sheet, (0,0), rect)
+    img_r.unlock()
+    img_r.set_colorkey((0,0,0))
+    img_r.convert_alpha()
     player_r.append(img_r)
-    img_u = pygame.Surface((64, 64)).convert_alpha()
+    img_u = pygame.Surface((64, 64))
     rect = pygame.Rect(x, 192, 64, 64)
     img_u.blit(sprite_sheet, (0,0), rect)
+    img_u.unlock()
+    img_u.set_colorkey((0,0,0))
+    img_u.convert_alpha()
     player_u.append(img_u)
 
 player_down = player_d[1]
@@ -170,6 +185,10 @@ bulletDelay = 10
 bulletFirst = True
 bullet_group = pygame.sprite.Group()
 mouse_pos = pygame.mouse.get_pos()
+
+# flock 
+predator = False
+f = flock.Flock(30, 100., 500)
 
 while True:
     if android:
@@ -254,6 +273,11 @@ while True:
 
 
     SCREEN.fill(BLACK)
+    # flock
+    f.update(player_rect.center, predator)
+    flock_surface = f.draw() # draw the flock
+    SCREEN.blit(flock_surface, (0,0))
+
 
     if newBullet:
         bullet = Bullet(mouse_pos, player_rect.center)
@@ -266,7 +290,7 @@ while True:
             bullet.rect.centery) > 320:
             bullet_group.remove(bullet)
     bullet_group.draw(SCREEN)
-
+    
     SCREEN.blit(shoot.image, shoot.rect)
     SCREEN.blit(player, player_rect)
     if not android: 
